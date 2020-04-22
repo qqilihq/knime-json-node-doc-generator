@@ -53,6 +53,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -69,6 +70,7 @@ import org.eclipse.equinox.app.IApplication;
 import org.eclipse.equinox.app.IApplicationContext;
 import org.eclipse.swt.widgets.Display;
 import org.knime.core.node.ConfigurableNodeFactory;
+import org.knime.core.node.Node;
 import org.knime.core.node.NodeFactory;
 import org.knime.core.node.NodeModel;
 import org.knime.core.node.context.ModifiableNodeCreationConfiguration;
@@ -87,6 +89,7 @@ import org.w3c.dom.Element;
 
 import de.philippkatz.knime.jsondocgen.docs.CategoryDoc;
 import de.philippkatz.knime.jsondocgen.docs.CategoryDoc.CategoryDocBuilder;
+import de.philippkatz.knime.jsondocgen.docs.NodeDoc.DynamicPortGroup;
 import de.philippkatz.knime.jsondocgen.docs.NodeDoc.NodeDocBuilder;
 import de.philippkatz.knime.jsondocgen.docs.NodeDoc.Port;
 import de.philippkatz.knime.jsondocgen.docs.PortTypeDoc;
@@ -435,10 +438,16 @@ public class JsonNodeDocuGenerator implements IApplication {
 			try {
 				NodeModel nodeModel = createNodeModel(factory);
 				PortType[] outPorts = getPorts(nodeModel, false);
+				// TODO need to consider dynamic ports here?!
 				builder.setOutPorts(mergePortInfo(builder.build().outPorts, outPorts, current.getID()));
 				PortType[] inPorts = getPorts(nodeModel, true);
+				// TODO need to consider dynamic ports here?!
 				builder.setInPorts(mergePortInfo(builder.build().inPorts, inPorts, current.getID()));
 				builder.setStreamable(isStreamable(nodeModel));
+				// TODO merge this “dynamic port” shit here
+				// https://github.com/knime/knime-workbench/blob/9b42402105c8f8ebb3a74ae8fa869522d263bf68/org.knime.workbench.repository/src/eclipse/org/knime/workbench/repository/nodalizer/NodeInfo.java
+				builder.setDynamicInPorts(getDynamicPorts(factory, PortDirection.In));
+				builder.setDynamicOutPorts(getDynamicPorts(factory, PortDirection.Out));
 			} catch (Throwable t) {
 				LOGGER.warn(String.format("Could not create NodeModel for %s", factory.getClass().getName()), t);
 			}
@@ -563,6 +572,7 @@ public class JsonNodeDocuGenerator implements IApplication {
 	 *             In case anything goes wrong.
 	 */
 	/* package */ static PortType[] getPorts(NodeModel nodeModel, boolean inPort) throws Exception {
+		// TODO I see that we could probably get this through the org.knime.core.node.Node class
 
 		Method getPortType = NodeModel.class.getDeclaredMethod(inPort ? "getInPortType" : "getOutPortType", int.class);
 		getPortType.setAccessible(true);
@@ -578,6 +588,21 @@ public class JsonNodeDocuGenerator implements IApplication {
 		}
 
 		return portTypes;
+	}
+	
+	private static List<DynamicPortGroup> getDynamicPorts(NodeFactory<? extends NodeModel> factory, PortDirection portDirection) {
+		if (factory instanceof ConfigurableNodeFactory) {
+			@SuppressWarnings("unchecked")
+			Node node = new Node((NodeFactory<NodeModel>) factory);
+			node.getCopyOfCreationConfig().ifPresent(nodeCreationConfig -> {
+				nodeCreationConfig.getPortConfig().ifPresent(portsConfig -> {
+					// TODO implement this; look at this mess:
+					// https://github.com/knime/knime-workbench/commit/508b59c8f475277df5c095567c8f441eda6808cd
+					// https://github.com/knime/knime-workbench/blob/master/org.knime.workbench.repository/src/eclipse/org/knime/workbench/repository/nodalizer/Nodalizer.java
+				});
+			});
+		}
+		return Collections.emptyList();
 	}
 
 	/**
@@ -622,5 +647,9 @@ public class JsonNodeDocuGenerator implements IApplication {
 		} else {
 			return "";
 		}
+	}
+	
+	private static enum PortDirection {
+		In, Out
 	}
 }

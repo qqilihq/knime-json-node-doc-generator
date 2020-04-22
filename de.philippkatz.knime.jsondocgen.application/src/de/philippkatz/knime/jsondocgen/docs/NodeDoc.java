@@ -22,6 +22,10 @@ public final class NodeDoc extends AbstractDoc {
 		private boolean hidden;
 		private InteractiveView interactiveView;
 		private boolean streamable;
+		/** @since 1.11 -- added with KNIME 4.2 */
+		private List<DynamicPortGroup> dynamicInPorts;
+		/** @since 1.11 -- added with KNIME 4.2 */
+		private List<DynamicPortGroup> dynamicOutPorts;
 		public NodeDocBuilder setIntro(String intro) {
 			this.intro = intro;
 			return this;
@@ -83,6 +87,14 @@ public final class NodeDoc extends AbstractDoc {
 		public NodeDoc build() {
 			return new NodeDoc(this);
 		}
+		public NodeDocBuilder setDynamicInPorts(List<DynamicPortGroup> dynamicInPorts) {
+			this.dynamicInPorts = dynamicInPorts;
+			return this;
+		}
+		public NodeDocBuilder setDynamicOutPorts(List<DynamicPortGroup> dynamicOutPorts) {
+			this.dynamicOutPorts = dynamicOutPorts;
+			return this;
+		}
 	}
 	
 	public static final class OptionTab {
@@ -143,6 +155,9 @@ public final class NodeDoc extends AbstractDoc {
 			this.description = description;
 		}
 	}
+	public static final class DynamicPortGroup {
+		// TODO
+	}
 
 	public final String intro;
 	public final List<OptionTab> optionTabs;
@@ -159,6 +174,10 @@ public final class NodeDoc extends AbstractDoc {
 	public final boolean hidden;
 	public final InteractiveView interactiveView;
 	public final boolean streamable;
+	/** @since 1.11 -- added with KNIME 4.2 */
+	public final List<DynamicPortGroup> dynamicInPorts;
+	/** @since 1.11 -- added with KNIME 4.2 */
+	public final List<DynamicPortGroup> dynamicOutPorts;
 
 	private NodeDoc(NodeDocBuilder builder) {
 		super(builder);
@@ -175,6 +194,8 @@ public final class NodeDoc extends AbstractDoc {
 		hidden = builder.hidden;
 		interactiveView = builder.interactiveView;
 		streamable = builder.streamable;
+		dynamicInPorts = builder.dynamicInPorts;
+		dynamicOutPorts = builder.dynamicOutPorts;
 	}
 
 	private static List<String> convert(List<Port> ports) {
